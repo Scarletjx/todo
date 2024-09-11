@@ -42,6 +42,9 @@ const TodoItem: React.FC<TodoItemProps> = ({
       spacing="1rem"
       p={2}
       fontWeight="600"
+      whiteSpace="nowrap"
+      overflow="hidden"
+      textOverflow="ellipsis"
       sx={{
         // Change the color of the checkmark (tick) and checked background
         "& .chakra-checkbox__control[data-checked]": {

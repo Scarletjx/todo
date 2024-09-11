@@ -7,6 +7,10 @@ import {
   IconButton,
   Text,
   Collapse,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  InputRightElement,
 } from "@chakra-ui/react";
 import { DragDropContext } from "react-beautiful-dnd";
 import {
@@ -14,6 +18,8 @@ import {
   CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  CloseIcon,
+  SearchIcon,
 } from "@chakra-ui/icons";
 import EditModal from "./components/EditModal";
 import TaskList from "./components/TaskList";
@@ -35,7 +41,8 @@ function App() {
   const [editId, setEditId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(true);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     const loadIncompleteTodos = localStorage.getItem("incompleteTodos");
@@ -130,12 +137,33 @@ function App() {
     return result;
   };
 
+  const move = (
+    source: Todo[],
+    destination: Todo[],
+    droppableSource: any,
+    droppableDestination: any,
+    isCompleted: boolean
+  ) => {
+    const sourceClone = Array.from(source);
+    const destClone = Array.from(destination);
+    const [removed] = sourceClone.splice(droppableSource.index, 1);
+
+    const updatedItem = { ...removed, completed: isCompleted };
+    destClone.splice(droppableDestination.index, 0, updatedItem);
+
+    const result: { [key: string]: Todo[] } = {};
+    result[droppableSource.droppableId] = sourceClone;
+    result[droppableDestination.droppableId] = destClone;
+
+    return result;
+  };
+
   const onDragEnd = (result: any) => {
     const { source, destination } = result;
 
     if (!destination) return;
 
-    // Moving within the same list
+    // Moving within the same lisst
     if (source.droppableId === destination.droppableId) {
       if (source.droppableId === "incomplete") {
         const reordered = reorder(
@@ -152,13 +180,40 @@ function App() {
         );
         setCompletedToDos(reordered);
       }
+    } else {
+      // Moving between lists
+      const result = move(
+        source.droppableId === "incomplete" ? incompleteTodos : completedTodos,
+        source.droppableId === "incomplete" ? completedTodos : incompleteTodos,
+        source,
+        destination,
+        destination.droppableId === "completed"
+      );
+
+      setIncompleteToDos(result.incomplete || incompleteTodos);
+      setCompletedToDos(result.completed || completedTodos);
     }
   };
 
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const filteredIncompleteToDos = incompleteTodos.filter((todo) =>
+    todo.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredCompletedToDos = completedTodos.filter((todo) =>
+    todo.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
   return (
-    <Box p={20}>
+    <Box px={20} py={10}>
       <Flex alignItems="center" mb={4}>
-        {/* Checkbox icon with white tick and blue background */}
         <Box
           bg="#007FFF"
           borderRadius="md"
@@ -173,6 +228,37 @@ function App() {
           <CheckIcon boxSize={3} />
         </Box>
         <Heading size="md">Taski</Heading>
+
+        <InputGroup
+          ml="auto"
+          mt={4}
+          mb={4}
+          bg="#F5F7F9"
+          width="30%"
+          borderRadius="xl"
+        >
+          <InputLeftElement pointerEvents="none">
+            <SearchIcon color="#007FFF" />
+          </InputLeftElement>
+          <Input
+            placeholder="Search tasks..."
+            value={searchQuery}
+            onChange={handleSearch}
+          />
+          <InputRightElement>
+            {searchQuery && (
+              <IconButton
+                size="xs"
+                isRound={true}
+                aria-label="Clear search"
+                icon={<CloseIcon boxSize={2} />}
+                color="white"
+                bg="#C6CFDC"
+                onClick={clearSearch}
+              />
+            )}
+          </InputRightElement>
+        </InputGroup>
       </Flex>
       <Heading mt={10} size="lg">
         Welcome,
@@ -188,7 +274,7 @@ function App() {
         You've got {incompleteTodos.length} tasks to do.
       </Text>
 
-      <Button onClick={openCreateModal} bg="white" my={6} pl="18px">
+      <Button onClick={openCreateModal} bg="white" my={6} p="18px">
         <Flex gap={4}>
           <AddIcon
             fontSize="23px"
@@ -207,7 +293,7 @@ function App() {
       <DragDropContext onDragEnd={onDragEnd}>
         {/* Todo List */}
         <TaskList
-          todos={incompleteTodos}
+          todos={filteredIncompleteToDos}
           completeTodo={completeTodo}
           deleteTodo={deleteTodo}
           editTodo={openEditModal}
@@ -224,15 +310,27 @@ function App() {
             bg="white"
             size="ml"
             fontSize="33px"
-            icon={showCompleted ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            icon={showCompleted ? <ChevronDownIcon /> : <ChevronUpIcon />}
             onClick={() => setShowCompleted(!showCompleted)}
             aria-label="Toggle Completed Tasks"
           />
+          <Button
+            ml="auto"
+            bg="white"
+            color="#FF5E5E"
+            as="u"
+            onClick={() => setCompletedToDos([])}
+            _hover={{
+              bg: "rgba(255, 94, 94, 0.15)",
+            }}
+          >
+            Delete all
+          </Button>
         </Flex>
 
         <Collapse in={showCompleted}>
           <TaskList
-            todos={completedTodos}
+            todos={filteredCompletedToDos}
             completeTodo={completeTodo}
             deleteTodo={deleteTodo}
             editTodo={openEditModal}
