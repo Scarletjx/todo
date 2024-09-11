@@ -1,30 +1,26 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
-  Input,
   Heading,
-  List,
-  ListItem,
-  Checkbox,
   Flex,
   IconButton,
   Text,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  ModalFooter,
+  Collapse,
 } from "@chakra-ui/react";
-import { CheckIcon, SmallCloseIcon } from "@chakra-ui/icons";
-import { MdEdit } from "react-icons/md";
-import AlertMessage from "./components/AlertMessage";
+import { DragDropContext } from "react-beautiful-dnd";
+import {
+  AddIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from "@chakra-ui/icons";
+import EditModal from "./components/EditModal";
+import TaskList from "./components/TaskList";
 
 const API_URL = "/todos.json";
 
-interface Todo {
+export interface Todo {
   id: number;
   title: string;
   completed: boolean;
@@ -33,245 +29,230 @@ interface Todo {
 
 function App() {
   const [isLoaded, setIsLoaded] = useState<Boolean>(false);
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [newTodo, setNewTodo] = useState("");
+  const [incompleteTodos, setIncompleteToDos] = useState<Todo[]>([]);
+  const [completedTodos, setCompletedToDos] = useState<Todo[]>([]);
+  const [modalText, setModalText] = useState<string>("");
   const [editId, setEditId] = useState<number | null>(null);
-  const [editText, setEditText] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [modalError, setModalError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [showCompleted, setShowCompleted] = useState(false);
 
   useEffect(() => {
-    const storedList = localStorage.getItem("todos");
-    if (storedList) {
-      setTodos(JSON.parse(storedList));
+    const loadIncompleteTodos = localStorage.getItem("incompleteTodos");
+    const loadCompleteTodos = localStorage.getItem("completeTodos");
+    if (loadIncompleteTodos) {
+      setIncompleteToDos(JSON.parse(loadIncompleteTodos));
+    }
+    if (loadCompleteTodos) {
+      setCompletedToDos(JSON.parse(loadCompleteTodos));
     }
     setIsLoaded(true);
   }, []);
 
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("todos", JSON.stringify(todos));
+      localStorage.setItem("incompleteTodos", JSON.stringify(incompleteTodos));
+      localStorage.setItem("completeTodos", JSON.stringify(completedTodos));
     }
-  }, [todos, isLoaded]);
+  }, [incompleteTodos, completedTodos, isLoaded]);
 
-  const addTodo = () => {
-    if (newTodo) {
-      const newTodoItem: Todo = {
-        id: todos.length + 1,
-        title: newTodo,
+  const openCreateModal = () => {
+    setModalText(""); // Clear input for new task
+    setModalMode("create");
+    setModalOpen(true);
+  };
+
+  const openEditModal = (id: number, title: string) => {
+    setEditId(id);
+    setModalText(title);
+    setModalMode("edit");
+    setModalOpen(true);
+  };
+
+  const calculateNextId = () => {
+    const allTodos = [...incompleteTodos, ...completedTodos];
+    const highestId =
+      allTodos.length > 0 ? Math.max(...allTodos.map((todo) => todo.id)) : 0;
+
+    return highestId + 1;
+  };
+
+  const saveTodo = (title: string) => {
+    if (modalMode === "create") {
+      // Creating new task
+      const newTodo: Todo = {
+        id: calculateNextId(),
+        title,
         completed: false,
         createdAt: new Date().toISOString(),
       };
-      setTodos([...todos, newTodoItem]);
-
-      setNewTodo("");
-    } else {
-      setError("Todo title cannot be empty");
+      setIncompleteToDos([...incompleteTodos, newTodo]);
+    } else if (modalMode === "edit" && editId !== null) {
+      setIncompleteToDos(
+        incompleteTodos.map((todo) =>
+          todo.id === editId ? { ...todo, title } : todo
+        )
+      );
     }
+    setModalOpen(false);
   };
 
   const deleteTodo = (id: number) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
-  };
-
-  const editTodo = (id: number, title: string) => {
-    setEditId(id);
-    setEditText(title);
-  };
-
-  const saveEdit = () => {
-    if (editText === "") {
-      setModalError("Todo title cannot be empty");
-    } else if (editId !== null) {
-      setTodos(
-        todos.map((todo) =>
-          todo.id === editId ? { ...todo, title: editText } : todo
-        )
-      );
-      onCloseEdit();
-    }
+    setIncompleteToDos(incompleteTodos.filter((todo) => todo.id !== id));
+    setCompletedToDos(completedTodos.filter((todo) => todo.id !== id));
   };
 
   const completeTodo = (id: number) => {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
+    const todo = incompleteTodos.find((todo) => todo.id === id);
+    if (todo) {
+      setIncompleteToDos(incompleteTodos.filter((t) => t.id !== id));
+      setCompletedToDos([...completedTodos, { ...todo, completed: true }]);
+    } else {
+      const completedTodo = completedTodos.find(
+        (todo: { id: number }) => todo.id === id
+      );
+      if (completedTodo) {
+        setCompletedToDos(
+          completedTodos.filter((t: { id: number }) => t.id !== id)
+        );
+        setIncompleteToDos([
+          ...incompleteTodos,
+          { ...completedTodo, completed: false },
+        ]);
+      }
+    }
   };
 
-  const getTodosLength = () => {
-    return todos.filter((todo) => !todo.completed).length;
+  const reorder = (list: Todo[], startIndex: number, endIndex: number) => {
+    const result = Array.from(list);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    return result;
   };
 
-  const onCloseEdit = () => {
-    setEditId(null);
-    setEditText("");
-    setModalError(null);
+  const onDragEnd = (result: any) => {
+    const { source, destination } = result;
+
+    if (!destination) return;
+
+    // Moving within the same list
+    if (source.droppableId === destination.droppableId) {
+      if (source.droppableId === "incomplete") {
+        const reordered = reorder(
+          incompleteTodos,
+          source.index,
+          destination.index
+        );
+        setIncompleteToDos(reordered);
+      } else if (source.droppableId === "completed") {
+        const reordered = reorder(
+          completedTodos,
+          source.index,
+          destination.index
+        );
+        setCompletedToDos(reordered);
+      }
+    }
   };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setNewTodo(e.target.value);
-
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setEditText(e.target.value);
-
-  const sortedTodos = [...todos].sort(
-    (a, b) => Number(a.completed) - Number(b.completed)
-  );
 
   return (
     <Box p={20}>
-      <Box paddingBottom={5}>
-        <Flex alignItems="center" mb={4}>
-          {/* Checkbox icon with white tick and blue background */}
-          <Box
-            bg="#007FFF"
-            borderRadius="md"
-            color="white"
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            w={6}
-            h={6}
-            mr={2}
-          >
-            <CheckIcon boxSize={3} />
-          </Box>
-          <Heading size="md">Taski</Heading>
-        </Flex>
-        <Heading mt={10} size="lg">
-          Welcome,
-          <Heading as="span" color="#007FFF" size="lg"> {" "}
-            You Lazy Bean
-          </Heading>
-          <Heading as="span" size="lg">
-            .
-          </Heading>
-        </Heading>
-        <Text mt={2} color="#8D9CB8">
-          You've got {getTodosLength()} tasks to do.
-        </Text>
-      </Box>
-
-      <Flex direction="column" gap={4} align="center">
-        {error && (
-          <AlertMessage
-            message={error}
-            onClose={() => {
-              setError(null);
-            }}
-          />
-        )}
-        <Flex width="100%" gap={2}>
-          <Input
-            value={newTodo}
-            onChange={handleInputChange}
-            placeholder="Add a new todo"
-            size="md"
-          />
-          <Button onClick={addTodo} colorScheme="blue">
-            Add Todo
-          </Button>
-        </Flex>
-
-        <List spacing={3} w="100%">
-          {sortedTodos.map((todo) => (
-            <ListItem
-              key={todo.id}
-              p={3}
-              borderRadius="xl"
-              bg="#F5F7F9"
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Checkbox
-                size="lg"
-                textDecoration={todo.completed ? "line-through" : undefined}
-                textColor={todo.completed ? "grey" : "black"}
-                onChange={() => completeTodo(todo.id)}
-                isChecked={todo.completed}
-                spacing='1rem'
-                p={2}
-                fontWeight='600'
-                sx={{
-                  // Change the color of the checkmark (tick) and checked background
-                  "& .chakra-checkbox__control[data-checked]": {
-                    bg: "#007FFF",        
-                    borderColor: "#007FFF", 
-                    color: "white",      
-                  },
-                }}
-              >
-                {todo.title}
-              </Checkbox>
-              <Flex gap={2} p={1} align="center">
-                <IconButton
-                  p={2}
-                  as={MdEdit}
-                  onClick={() => editTodo(todo.id, todo.title)}
-                  aria-label="Edit"
-                  color="#007FFF"
-                  bg="#F5F7F9"
-                  isRound={true}
-                  _hover={{
-                    bg: "rgba(0, 127, 255, 0.15)"
-                  }}
-                />
-                <IconButton
-                  fontSize='25px'
-                  icon={<SmallCloseIcon />}
-                  onClick={() => deleteTodo(todo.id)}
-                  aria-label="Delete"
-                  color="#FF5E5E"
-                  bg="#F5F7F9"
-                  isRound={true}
-                  _hover={{
-                    bg: "rgba(255, 94, 94, 0.15)"
-                  }}
-                />
-              </Flex>
-            </ListItem>
-          ))}
-        </List>
+      <Flex alignItems="center" mb={4}>
+        {/* Checkbox icon with white tick and blue background */}
+        <Box
+          bg="#007FFF"
+          borderRadius="md"
+          color="white"
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          w={6}
+          h={6}
+          mr={2}
+        >
+          <CheckIcon boxSize={3} />
+        </Box>
+        <Heading size="md">Taski</Heading>
       </Flex>
+      <Heading mt={10} size="lg">
+        Welcome,
+        <Heading as="span" color="#007FFF" size="lg">
+          {" "}
+          Guest
+        </Heading>
+        <Heading as="span" size="lg">
+          .
+        </Heading>
+      </Heading>
+      <Text mt={2} color="#8D9CB8">
+        You've got {incompleteTodos.length} tasks to do.
+      </Text>
 
-      <Modal
-        closeOnOverlayClick={false}
-        isOpen={editId !== null}
-        onClose={onCloseEdit}
-      >
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Modify task title</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            {modalError && (
-              <AlertMessage
-                message={modalError}
-                onClose={() => {
-                  setModalError(null);
-                }}
-              />
-            )}
-            <Input
-              mt={2}
-              value={editText}
-              onChange={handleEditChange}
-              placeholder="Edit todo title"
-              size="md"
-            />
-          </ModalBody>
+      <Button onClick={openCreateModal} bg="white" my={6} pl="18px">
+        <Flex gap={4}>
+          <AddIcon
+            fontSize="23px"
+            color="#C6CFDC"
+            border="2px"
+            borderColor="#C6CFDC"
+            borderRadius="md"
+            p={1}
+          />
+          <Text color="#8D9CB8" alignContent="center">
+            Add a new task...
+          </Text>
+        </Flex>
+      </Button>
 
-          <ModalFooter>
-            <Button colorScheme="blue" onClick={saveEdit} mr={3}>
-              Save
-            </Button>
-            <Button onClick={onCloseEdit}>Cancel</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <DragDropContext onDragEnd={onDragEnd}>
+        {/* Todo List */}
+        <TaskList
+          todos={incompleteTodos}
+          completeTodo={completeTodo}
+          deleteTodo={deleteTodo}
+          editTodo={openEditModal}
+          droppableId="incomplete"
+        />
+
+        {/* Completed Tasks - Expandable */}
+        <Flex my={4} gap={2} alignItems="center">
+          <Heading color="#8D9CB8" size="ms">
+            Completed ({completedTodos.length})
+          </Heading>
+          <IconButton
+            color="#8D9CB8"
+            bg="white"
+            size="ml"
+            fontSize="33px"
+            icon={showCompleted ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            onClick={() => setShowCompleted(!showCompleted)}
+            aria-label="Toggle Completed Tasks"
+          />
+        </Flex>
+
+        <Collapse in={showCompleted}>
+          <TaskList
+            todos={completedTodos}
+            completeTodo={completeTodo}
+            deleteTodo={deleteTodo}
+            editTodo={openEditModal}
+            droppableId="completed"
+            isCompleted={true}
+          />
+        </Collapse>
+      </DragDropContext>
+
+      {modalOpen && (
+        <EditModal
+          isOpen={modalOpen}
+          mode={modalMode}
+          initialText={modalText}
+          onSave={saveTodo}
+          onClose={() => {
+            setModalOpen(false);
+          }}
+        />
+      )}
     </Box>
   );
 }

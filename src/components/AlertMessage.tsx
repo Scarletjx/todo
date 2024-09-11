@@ -6,7 +6,6 @@ import {
   AlertDescription,
   CloseButton,
   Box,
-  Flex,
 } from "@chakra-ui/react";
 
 interface AlertMessageProps {
@@ -19,7 +18,7 @@ const AlertMessage: React.FC<AlertMessageProps> = ({ message, onClose }) => {
   if (!message) return null;
 
   return (
-    <Alert status='error'>
+    <Alert status='error' mb={2}>
       <AlertIcon />
       <Box width="100%">
         <AlertTitle>Error!</AlertTitle>
