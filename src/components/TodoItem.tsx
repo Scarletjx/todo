@@ -1,15 +1,23 @@
 import React from "react";
-import { Checkbox, Flex, IconButton } from "@chakra-ui/react";
+import {
+  Box,
+  Checkbox,
+  Collapse,
+  Flex,
+  IconButton,
+  Text,
+} from "@chakra-ui/react";
 import { MdEdit } from "react-icons/md";
 import { SmallCloseIcon } from "@chakra-ui/icons";
 import { Todo } from "./../App";
+import ToggleButton from "./ToggleButton";
 
 interface TodoItemProps {
   todo: Todo;
   provided: any;
   completeTodo: (id: number) => void;
   deleteTodo: (id: number) => void;
-  editTodo: (id: number, title: string) => void;
+  editTodo: (id: number, title: string, description: string) => void;
   isCompleted?: boolean;
 }
 
@@ -19,72 +27,117 @@ const TodoItem: React.FC<TodoItemProps> = ({
   completeTodo,
   deleteTodo,
   editTodo,
-  isCompleted
-}) => (
-  <Flex
-    p={3}
-    mb={5}
-    borderRadius="xl"
-    bg="#F5F7F9"
-    justifyContent="space-between"
-    alignItems="center"
-    ref={provided.innerRef}
-    {...provided.draggableProps}
-    {...provided.dragHandleProps}
-  >
-    <Checkbox
-      size="lg"
-      border="#C6CFDC"
-      textDecoration={todo.completed ? "line-through" : undefined}
-      textColor={todo.completed ? "grey" : "black"}
-      onChange={() => completeTodo(todo.id)}
-      isChecked={todo.completed}
-      spacing="1rem"
-      p={2}
-      fontWeight="600"
-      whiteSpace="nowrap"
-      overflow="hidden"
-      textOverflow="ellipsis"
-      sx={{
-        // Change the color of the checkmark (tick) and checked background
-        "& .chakra-checkbox__control[data-checked]": {
-          bg: "#007FFF",
-          borderColor: "#007FFF",
-          color: "white",
-        },
-      }}
+  isCompleted,
+}) => {
+  const [isExpanded, setIsExpanded] = React.useState(true);
+
+  const toggleDescription = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  return (
+    <Box
+      p={5}
+      mb={5}
+      borderRadius="xl"
+      bg="#F5F7F9"
+      ref={provided.innerRef}
+      {...provided.draggableProps}
+      {...provided.dragHandleProps}
     >
-      {todo.title}
-    </Checkbox>
-    <Flex gap={2} p={1} align="center">
-      {!isCompleted && (
-        <IconButton
+      <Flex justifyContent="space-between" alignItems="center">
+        <Checkbox
+          size="lg"
+          border="#C6CFDC"
+          onChange={() => completeTodo(todo.id)}
+          isChecked={todo.completed}
+          spacing="1rem"
           p={2}
-          as={MdEdit}
-          onClick={() => editTodo(todo.id, todo.title)}
-          aria-label="Edit"
-          color="#007FFF"
-          bg="#F5F7F9"
-          isRound={true}
-          _hover={{
-            bg: "rgba(0, 127, 255, 0.15)",
+          fontWeight="600"
+          sx={{
+            "& .chakra-checkbox__control[data-checked]": {
+              bg: "#007FFF",
+              borderColor: "#007FFF",
+              color: "white",
+            },
           }}
         />
-      )}
-      <IconButton
-        fontSize="25px"
-        icon={<SmallCloseIcon />}
-        onClick={() => deleteTodo(todo.id)}
-        aria-label="Delete"
-        color="#FF5E5E"
-        bg="#F5F7F9"
-        isRound={true}
-        _hover={{
-          bg: "rgba(255, 94, 94, 0.15)",
-        }}
-      />
-    </Flex>
-  </Flex>
-);
+
+        <Box flex="1" ml={4}>
+          <Text
+            fontWeight="bold"
+            fontSize="lg"
+            textDecoration={todo.completed ? "line-through" : undefined}
+            textColor={todo.completed ? "grey" : "black"}
+            whiteSpace="nowrap"
+            overflow="hidden"
+            textOverflow="ellipsis"
+            cursor="pointer"
+            onClick={toggleDescription}
+          >
+            {todo.title}
+          </Text>
+
+          <Collapse in={isExpanded}>
+            <Text
+              fontSize="sm"
+              color="gray.500"
+              mt={2}
+              wordBreak="break-word"
+              overflowWrap="break-word"
+            >
+              {todo.description}
+            </Text>
+          </Collapse>
+        </Box>
+
+        <Flex gap={2} p={1} align="center">
+          {todo.description && (
+            <ToggleButton
+              bg=""
+              isRound={true}
+              isToggled={isExpanded}
+              onToggle={toggleDescription}
+              ariaLabel="TToggle Description"
+            />
+          )}
+
+          {!isCompleted && (
+            <IconButton
+              p={2}
+              as={MdEdit}
+              onClick={() =>
+                editTodo(
+                  todo.id,
+                  todo.title,
+                  todo.description ? todo.description : ""
+                )
+              }
+              aria-label="Edit"
+              color="#007FFF"
+              bg="#F5F7F9"
+              isRound={true}
+              _hover={{
+                bg: "rgba(0, 127, 255, 0.15)",
+              }}
+            />
+          )}
+          <IconButton
+            fontSize="25px"
+            icon={<SmallCloseIcon />}
+            onClick={() => deleteTodo(todo.id)}
+            aria-label="Delete"
+            color="#FF5E5E"
+            bg="#F5F7F9"
+            isRound={true}
+            _hover={{
+              bg: "rgba(255, 94, 94, 0.15)",
+            }}
+          />
+        </Flex>
+      </Flex>
+    </Box>
+  );
+};
 
 export default TodoItem;

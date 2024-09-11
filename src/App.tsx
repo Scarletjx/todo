@@ -13,16 +13,10 @@ import {
   InputRightElement,
 } from "@chakra-ui/react";
 import { DragDropContext } from "react-beautiful-dnd";
-import {
-  AddIcon,
-  CheckIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  CloseIcon,
-  SearchIcon,
-} from "@chakra-ui/icons";
+import { AddIcon, CheckIcon, CloseIcon, SearchIcon } from "@chakra-ui/icons";
 import EditModal from "./components/EditModal";
 import TaskList from "./components/TaskList";
+import ToggleButton from "./components/ToggleButton";
 
 const API_URL = "/todos.json";
 
@@ -30,6 +24,7 @@ export interface Todo {
   id: number;
   title: string;
   completed: boolean;
+  description?: string;
   createdAt: string;
 }
 
@@ -37,7 +32,8 @@ function App() {
   const [isLoaded, setIsLoaded] = useState<Boolean>(false);
   const [incompleteTodos, setIncompleteToDos] = useState<Todo[]>([]);
   const [completedTodos, setCompletedToDos] = useState<Todo[]>([]);
-  const [modalText, setModalText] = useState<string>("");
+  const [modalTitle, setModalTitle] = useState<string>("");
+  const [modalDescription, setModalDescription] = useState<string>("");
   const [editId, setEditId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
@@ -64,14 +60,16 @@ function App() {
   }, [incompleteTodos, completedTodos, isLoaded]);
 
   const openCreateModal = () => {
-    setModalText(""); // Clear input for new task
+    setModalTitle("");
+    setModalDescription("");
     setModalMode("create");
     setModalOpen(true);
   };
 
-  const openEditModal = (id: number, title: string) => {
+  const openEditModal = (id: number, title: string, description: string) => {
     setEditId(id);
-    setModalText(title);
+    setModalTitle(title);
+    setModalDescription(description);
     setModalMode("edit");
     setModalOpen(true);
   };
@@ -84,20 +82,21 @@ function App() {
     return highestId + 1;
   };
 
-  const saveTodo = (title: string) => {
+  const saveTodo = (title: string, description: string) => {
     if (modalMode === "create") {
       // Creating new task
       const newTodo: Todo = {
         id: calculateNextId(),
         title,
         completed: false,
+        description: description,
         createdAt: new Date().toISOString(),
       };
       setIncompleteToDos([...incompleteTodos, newTodo]);
     } else if (modalMode === "edit" && editId !== null) {
       setIncompleteToDos(
         incompleteTodos.map((todo) =>
-          todo.id === editId ? { ...todo, title } : todo
+          todo.id === editId ? { ...todo, title, description } : todo
         )
       );
     }
@@ -305,14 +304,12 @@ function App() {
           <Heading color="#8D9CB8" size="ms">
             Completed ({completedTodos.length})
           </Heading>
-          <IconButton
-            color="#8D9CB8"
+          <ToggleButton
             bg="white"
-            size="ml"
-            fontSize="33px"
-            icon={showCompleted ? <ChevronDownIcon /> : <ChevronUpIcon />}
-            onClick={() => setShowCompleted(!showCompleted)}
-            aria-label="Toggle Completed Tasks"
+            isRound={false}
+            isToggled={showCompleted}
+            onToggle={() => setShowCompleted(!showCompleted)}
+            ariaLabel="Toggle Completed Tasks"
           />
           <Button
             ml="auto"
@@ -344,7 +341,8 @@ function App() {
         <EditModal
           isOpen={modalOpen}
           mode={modalMode}
-          initialText={modalText}
+          initialTitle={modalTitle}
+          initialDescription={modalDescription}
           onSave={saveTodo}
           onClose={() => {
             setModalOpen(false);

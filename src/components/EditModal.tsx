@@ -9,40 +9,52 @@ import {
   ModalFooter,
   Input,
   Button,
+  Text,
 } from "@chakra-ui/react";
 import AlertMessage from "./AlertMessage";
 
 interface EditModalProps {
   isOpen: boolean;
   mode: "create" | "edit"; // Mode can be either 'create' or 'edit'
-  initialText: string;
-  onSave: (value: string) => void;
+  initialTitle: string;
+  initialDescription: string;
+  onSave: (value: string, description: string) => void;
   onClose: () => void;
 }
 
 const EditModal: React.FC<EditModalProps> = ({
   isOpen,
   mode,
-  initialText,
+  initialTitle,
+  initialDescription,
   onSave,
   onClose,
 }) => {
-  const [inputValue, setInputValue] = React.useState(initialText);
-  const [error, setError] = React.useState<string | null>(null); 
+  const [title, setTitle] = React.useState(initialTitle);
+  const [description, setDescription] = React.useState(initialDescription);
+  const [error, setError] = React.useState<string | null>(null);
 
   const handleSave = () => {
-    if (inputValue.trim() === "") {
+    if (title.trim() === "") {
       setError("Task title cannot be empty.");
       return;
     }
-    onSave(inputValue);
-    setInputValue("");
+    onSave(title, description);
+    setTitle("");
+    setDescription("");
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value);
     if (e.target.value.trim() !== "") {
-      setError(null); 
+      setError(null);
+    }
+  };
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDescription(e.target.value);
+    if (e.target.value.trim() !== "") {
+      setError(null);
     }
   };
 
@@ -63,19 +75,32 @@ const EditModal: React.FC<EditModalProps> = ({
               }}
             />
           )}
+          <Text m={2}>Title</Text>
           <Input
-            value={inputValue}
-            onChange={handleInputChange}
+            m={2}
+            value={title}
+            onChange={handleTitleChange}
             placeholder={
               mode === "create" ? "Enter new task title" : "Edit task title"
             }
           />
+          <Text m={2}>Description</Text>
+          <Input
+            m={2}
+            value={description}
+            onChange={handleDescriptionChange}
+            placeholder={
+              mode === "create"
+                ? "Enter new task description"
+                : "Edit task description"
+            }
+          />
         </ModalBody>
         <ModalFooter>
-          <Button onClick={handleSave} colorScheme="blue">
+          <Button bg="#007FFF" textColor="white" onClick={handleSave}>
             {mode === "create" ? "Create" : "Save"}
           </Button>
-          <Button onClick={onClose} ml={3}>
+          <Button color="#007FFF" onClick={onClose} ml={3}>
             Cancel
           </Button>
         </ModalFooter>

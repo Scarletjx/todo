@@ -9,12 +9,12 @@ const TaskList = ({
   deleteTodo,
   editTodo,
   droppableId,
-  isCompleted
+  isCompleted,
 }: {
   todos: Todo[];
   completeTodo: (id: number) => void;
   deleteTodo: (id: number) => void;
-  editTodo: (id: number, title: string) => void;
+  editTodo: (id: number, title: string, description: string) => void;
   droppableId: string;
   isCompleted?: boolean;
 }) => {
