@@ -2,7 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import path from "path";
-import todoRoutes from "./src/routes/TodoRoutes";
+import todoRoutes from "./routes/TodoRoutes";
 
 const app = express();
 const port = process.env.PORT || 5000;
