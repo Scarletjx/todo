@@ -6,8 +6,8 @@ import EditModal from "./components/EditModal";
 import TaskList from "./components/TaskList";
 import ToggleButton from "./components/ToggleButton";
 import SearchBar from "./SearchBar";
-
-const API_URL = "/todos.json";
+import axios from "axios";
+import AlertMessage from "./components/AlertMessage";
 
 export interface Todo {
   id: number;
@@ -17,8 +17,9 @@ export interface Todo {
   createdAt: string;
 }
 
+const API_URL = "http://localhost:5000/api/todos";
+
 function App() {
-  const [isLoaded, setIsLoaded] = useState<Boolean>(false);
   const [incompleteTodos, setIncompleteToDos] = useState<Todo[]>([]);
   const [completedTodos, setCompletedToDos] = useState<Todo[]>([]);
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -28,25 +29,22 @@ function App() {
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [showCompleted, setShowCompleted] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadIncompleteTodos = localStorage.getItem("incompleteTodos");
-    const loadCompleteTodos = localStorage.getItem("completeTodos");
-    if (loadIncompleteTodos) {
-      setIncompleteToDos(JSON.parse(loadIncompleteTodos));
-    }
-    if (loadCompleteTodos) {
-      setCompletedToDos(JSON.parse(loadCompleteTodos));
-    }
-    setIsLoaded(true);
+    axios
+      .get(API_URL)
+      .then((response) => {
+        const todos = response.data;
+        const incomplete = todos.filter((todo: Todo) => !todo.completed);
+        const completed = todos.filter((todo: Todo) => todo.completed);
+        setIncompleteToDos(incomplete);
+        setCompletedToDos(completed);
+      })
+      .catch((error) => {
+        setError("Error fetching todos: " + error);
+      });
   }, []);
-
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("incompleteTodos", JSON.stringify(incompleteTodos));
-      localStorage.setItem("completeTodos", JSON.stringify(completedTodos));
-    }
-  }, [incompleteTodos, completedTodos, isLoaded]);
 
   const openCreateModal = () => {
     setModalTitle("");
@@ -81,39 +79,73 @@ function App() {
         description: description,
         createdAt: new Date().toISOString(),
       };
-      setIncompleteToDos([...incompleteTodos, newTodo]);
+      axios
+        .post(API_URL, newTodo)
+        .then((response) => {
+          setIncompleteToDos([...incompleteTodos, response.data]);
+        })
+        .catch((error) => setError("Error creating todo:" + error));
     } else if (modalMode === "edit" && editId !== null) {
-      setIncompleteToDos(
-        incompleteTodos.map((todo) =>
-          todo.id === editId ? { ...todo, title, description } : todo
-        )
-      );
+      axios
+        .put(API_URL + `/${editId}`, {
+          title,
+          description,
+        })
+        .then((response) => {
+          setIncompleteToDos(
+            incompleteTodos.map((todo) =>
+              todo.id === editId ? { ...todo, title, description } : todo
+            )
+          );
+        })
+        .catch((error) => setError("Error updating todo:" + error));
     }
     setModalOpen(false);
   };
 
   const deleteTodo = (id: number) => {
-    setIncompleteToDos(incompleteTodos.filter((todo) => todo.id !== id));
-    setCompletedToDos(completedTodos.filter((todo) => todo.id !== id));
+    axios
+      .delete(API_URL + `/${id}`)
+      .then(() => {
+        setIncompleteToDos(incompleteTodos.filter((todo) => todo.id !== id));
+        setCompletedToDos(completedTodos.filter((todo) => todo.id !== id));
+      })
+      .catch((error) => setError("Error deleting todo:" + error));
   };
 
   const completeTodo = (id: number) => {
     const todo = incompleteTodos.find((todo) => todo.id === id);
     if (todo) {
-      setIncompleteToDos(incompleteTodos.filter((t) => t.id !== id));
-      setCompletedToDos([...completedTodos, { ...todo, completed: true }]);
+      axios
+        .put(API_URL + `/${id}`, {
+          ...todo,
+          completed: true,
+        })
+        .then(() => {
+          setIncompleteToDos(incompleteTodos.filter((t) => t.id !== id));
+          setCompletedToDos([...completedTodos, { ...todo, completed: true }]);
+        })
+        .catch((error) => setError("Error completing todo:" + error));
     } else {
       const completedTodo = completedTodos.find(
         (todo: { id: number }) => todo.id === id
       );
       if (completedTodo) {
-        setCompletedToDos(
-          completedTodos.filter((t: { id: number }) => t.id !== id)
-        );
-        setIncompleteToDos([
-          ...incompleteTodos,
-          { ...completedTodo, completed: false },
-        ]);
+        axios
+          .put(API_URL + `/${id}`, {
+            ...completedTodo,
+            completed: false,
+          })
+          .then(() => {
+            setCompletedToDos(
+              completedTodos.filter((t: { id: number }) => t.id !== id)
+            );
+            setIncompleteToDos([
+              ...incompleteTodos,
+              { ...completedTodo, completed: false },
+            ]);
+          })
+          .catch((error) => setError("Error marking todo incomplete:" + error));
       }
     }
   };
@@ -216,7 +248,7 @@ function App() {
           <CheckIcon boxSize={3} />
         </Box>
         <Heading size="md">Taski</Heading>
-        
+
         <SearchBar
           searchQuery={searchQuery}
           handleSearch={handleSearch}
@@ -236,6 +268,17 @@ function App() {
       <Text mt={2} color="grey.300">
         You've got {incompleteTodos.length} tasks to do.
       </Text>
+
+      {error && (
+        <Box py={5}>
+          <AlertMessage
+            message={error}
+            onClose={() => {
+              setError(null);
+            }}
+          />
+        </Box>
+      )}
 
       <Button onClick={openCreateModal} bg="white" my={6} p="18px">
         <Flex gap={4}>
