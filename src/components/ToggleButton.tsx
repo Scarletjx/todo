@@ -21,7 +21,7 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({
   return (
     <IconButton
       p={1}
-      color="#8D9CB8"
+      color="grey.300"
       isRound={isRound}
       bg={bg}
       size="ml"

@@ -1,22 +1,11 @@
 import { useState, useEffect } from "react";
-import {
-  Box,
-  Button,
-  Heading,
-  Flex,
-  IconButton,
-  Text,
-  Collapse,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  InputRightElement,
-} from "@chakra-ui/react";
+import { Box, Button, Heading, Flex, Text, Collapse } from "@chakra-ui/react";
 import { DragDropContext } from "react-beautiful-dnd";
-import { AddIcon, CheckIcon, CloseIcon, SearchIcon } from "@chakra-ui/icons";
+import { AddIcon, CheckIcon } from "@chakra-ui/icons";
 import EditModal from "./components/EditModal";
 import TaskList from "./components/TaskList";
 import ToggleButton from "./components/ToggleButton";
+import SearchBar from "./SearchBar";
 
 const API_URL = "/todos.json";
 
@@ -214,7 +203,7 @@ function App() {
     <Box px={20} py={10}>
       <Flex alignItems="center" mb={4}>
         <Box
-          bg="#007FFF"
+          bg="blue"
           borderRadius="md"
           color="white"
           display="flex"
@@ -227,41 +216,16 @@ function App() {
           <CheckIcon boxSize={3} />
         </Box>
         <Heading size="md">Taski</Heading>
-
-        <InputGroup
-          ml="auto"
-          mt={4}
-          mb={4}
-          bg="#F5F7F9"
-          width="30%"
-          borderRadius="xl"
-        >
-          <InputLeftElement pointerEvents="none">
-            <SearchIcon color="#007FFF" />
-          </InputLeftElement>
-          <Input
-            placeholder="Search tasks..."
-            value={searchQuery}
-            onChange={handleSearch}
-          />
-          <InputRightElement>
-            {searchQuery && (
-              <IconButton
-                size="xs"
-                isRound={true}
-                aria-label="Clear search"
-                icon={<CloseIcon boxSize={2} />}
-                color="white"
-                bg="#C6CFDC"
-                onClick={clearSearch}
-              />
-            )}
-          </InputRightElement>
-        </InputGroup>
+        
+        <SearchBar
+          searchQuery={searchQuery}
+          handleSearch={handleSearch}
+          clearSearch={clearSearch}
+        />
       </Flex>
       <Heading mt={10} size="lg">
         Welcome,
-        <Heading as="span" color="#007FFF" size="lg">
+        <Heading as="span" color="blue" size="lg">
           {" "}
           Guest
         </Heading>
@@ -269,7 +233,7 @@ function App() {
           .
         </Heading>
       </Heading>
-      <Text mt={2} color="#8D9CB8">
+      <Text mt={2} color="grey.300">
         You've got {incompleteTodos.length} tasks to do.
       </Text>
 
@@ -277,13 +241,13 @@ function App() {
         <Flex gap={4}>
           <AddIcon
             fontSize="23px"
-            color="#C6CFDC"
+            color="grey.200"
             border="2px"
-            borderColor="#C6CFDC"
+            borderColor="grey.200"
             borderRadius="md"
             p={1}
           />
-          <Text color="#8D9CB8" alignContent="center">
+          <Text color="grey.300" alignContent="center">
             Add a new task...
           </Text>
         </Flex>
@@ -301,7 +265,7 @@ function App() {
 
         {/* Completed Tasks - Expandable */}
         <Flex my={4} gap={2} alignItems="center">
-          <Heading color="#8D9CB8" size="ms">
+          <Heading color="grey.300" size="ms">
             Completed ({completedTodos.length})
           </Heading>
           <ToggleButton
@@ -314,7 +278,7 @@ function App() {
           <Button
             ml="auto"
             bg="white"
-            color="#FF5E5E"
+            color="red"
             as="u"
             onClick={() => setCompletedToDos([])}
             _hover={{

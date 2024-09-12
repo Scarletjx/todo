@@ -40,7 +40,7 @@ const TodoItem: React.FC<TodoItemProps> = ({
       p={5}
       mb={5}
       borderRadius="xl"
-      bg="#F5F7F9"
+      bg="grey.100"
       ref={provided.innerRef}
       {...provided.draggableProps}
       {...provided.dragHandleProps}
@@ -48,7 +48,7 @@ const TodoItem: React.FC<TodoItemProps> = ({
       <Flex justifyContent="space-between" alignItems="center">
         <Checkbox
           size="lg"
-          border="#C6CFDC"
+          border="grey.200"
           onChange={() => completeTodo(todo.id)}
           isChecked={todo.completed}
           spacing="1rem"
@@ -56,8 +56,8 @@ const TodoItem: React.FC<TodoItemProps> = ({
           fontWeight="600"
           sx={{
             "& .chakra-checkbox__control[data-checked]": {
-              bg: "#007FFF",
-              borderColor: "#007FFF",
+              bg: "blue",
+              borderColor: "blue",
               color: "white",
             },
           }}
@@ -81,7 +81,7 @@ const TodoItem: React.FC<TodoItemProps> = ({
           <Collapse in={isExpanded}>
             <Text
               fontSize="sm"
-              color="gray.500"
+              color="grey.300"
               mt={2}
               wordBreak="break-word"
               overflowWrap="break-word"
@@ -98,7 +98,7 @@ const TodoItem: React.FC<TodoItemProps> = ({
               isRound={true}
               isToggled={isExpanded}
               onToggle={toggleDescription}
-              ariaLabel="TToggle Description"
+              ariaLabel="Toggle Description"
             />
           )}
 
@@ -114,8 +114,8 @@ const TodoItem: React.FC<TodoItemProps> = ({
                 )
               }
               aria-label="Edit"
-              color="#007FFF"
-              bg="#F5F7F9"
+              color="blue"
+              bg="grey.100"
               isRound={true}
               _hover={{
                 bg: "rgba(0, 127, 255, 0.15)",
@@ -127,8 +127,8 @@ const TodoItem: React.FC<TodoItemProps> = ({
             icon={<SmallCloseIcon />}
             onClick={() => deleteTodo(todo.id)}
             aria-label="Delete"
-            color="#FF5E5E"
-            bg="#F5F7F9"
+            color="red"
+            bg="grey.100"
             isRound={true}
             _hover={{
               bg: "rgba(255, 94, 94, 0.15)",

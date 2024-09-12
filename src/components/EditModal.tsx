@@ -97,10 +97,10 @@ const EditModal: React.FC<EditModalProps> = ({
           />
         </ModalBody>
         <ModalFooter>
-          <Button bg="#007FFF" textColor="white" onClick={handleSave}>
+          <Button bg="blue" textColor="white" onClick={handleSave}>
             {mode === "create" ? "Create" : "Save"}
           </Button>
-          <Button color="#007FFF" onClick={onClose} ml={3}>
+          <Button color="blue" onClick={onClose} ml={3}>
             Cancel
           </Button>
         </ModalFooter>
