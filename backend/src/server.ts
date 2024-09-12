@@ -16,11 +16,11 @@ app.use("/api", todoRoutes);
 
 // Serve static files from the React app (build folder)
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/build")));
+  app.use(express.static(path.join(__dirname, "../../frontend/build")));
 
   // Handle any other routes, and serve the React app
   app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
+    res.sendFile(path.join(__dirname, "../../frontend/build", "index.html"));
   });
 }
 
