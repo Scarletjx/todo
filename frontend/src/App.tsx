@@ -17,7 +17,9 @@ export interface Todo {
   createdAt: string;
 }
 
-const API_URL = "http://localhost:5000/api/todos";
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? '/api/todos' 
+  : process.env.REACT_APP_API_URL || 'http://localhost:5000/api/todos';
 
 function App() {
   const [incompleteTodos, setIncompleteToDos] = useState<Todo[]>([]);
