@@ -2,10 +2,10 @@ import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import path from "path";
-import todoRoutes from "./routes/TodoRoutes";
+import todoRoutes from "./todo.routes";
+import sequelize from "./dbConfig";
 
 const app = express();
-const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
@@ -24,6 +24,10 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+sequelize.sync({ force: false }).then(() => {
+  console.log('Database connected and synced');
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+}).catch((err) => {
+  console.error('Error connecting to the database: ', err);
 });
