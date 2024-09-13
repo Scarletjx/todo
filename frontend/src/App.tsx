@@ -5,7 +5,7 @@ import { AddIcon, CheckIcon } from "@chakra-ui/icons";
 import EditModal from "./components/EditModal";
 import TaskList from "./components/TaskList";
 import ToggleButton from "./components/ToggleButton";
-import SearchBar from "./SearchBar";
+import SearchBar from "./components/SearchBar";
 import axios from "axios";
 import AlertMessage from "./components/AlertMessage";
 
@@ -17,9 +17,10 @@ export interface Todo {
   createdAt: string;
 }
 
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api/todos' 
-  : process.env.REACT_APP_API_URL || 'http://localhost:5000/api/todos';
+const API_URL =
+  process.env.NODE_ENV === "production"
+    ? "/api/todos"
+    : process.env.REACT_APP_API_URL || "http://localhost:5000/api/todos";
 
 function App() {
   const [incompleteTodos, setIncompleteToDos] = useState<Todo[]>([]);
@@ -34,18 +35,19 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    axios
-      .get(API_URL)
-      .then((response) => {
+    const fetchTodos = async () => {
+      try {
+        const response = await axios.get(API_URL);
         const todos = response.data;
         const incomplete = todos.filter((todo: Todo) => !todo.completed);
         const completed = todos.filter((todo: Todo) => todo.completed);
         setIncompleteToDos(incomplete);
         setCompletedToDos(completed);
-      })
-      .catch((error) => {
+      } catch (error) {
         setError("Error fetching todos: " + error);
-      });
+      }
+    };
+    fetchTodos();
   }, []);
 
   const openCreateModal = () => {
@@ -71,9 +73,8 @@ function App() {
     return highestId + 1;
   };
 
-  const saveTodo = (title: string, description: string) => {
+  const saveTodo = async (title: string, description: string) => {
     if (modalMode === "create") {
-      // Creating new task
       const newTodo: Todo = {
         id: calculateNextId(),
         title,
@@ -81,73 +82,73 @@ function App() {
         description: description,
         createdAt: new Date().toISOString(),
       };
-      axios
-        .post(API_URL, newTodo)
-        .then((response) => {
-          setIncompleteToDos([...incompleteTodos, response.data]);
-        })
-        .catch((error) => setError("Error creating todo:" + error));
+      try {
+        const response = await axios.post(API_URL, newTodo);
+        setIncompleteToDos([...incompleteTodos, response.data]);
+      } catch (error) {
+        setError("Error creating todo:" + error);
+      }
     } else if (modalMode === "edit" && editId !== null) {
-      axios
-        .put(API_URL + `/${editId}`, {
+      try {
+        await axios.put(API_URL + `/${editId}`, {
           title,
           description,
-        })
-        .then((response) => {
-          setIncompleteToDos(
-            incompleteTodos.map((todo) =>
-              todo.id === editId ? { ...todo, title, description } : todo
-            )
-          );
-        })
-        .catch((error) => setError("Error updating todo:" + error));
+        });
+        setIncompleteToDos(
+          incompleteTodos.map((todo) =>
+            todo.id === editId ? { ...todo, title, description } : todo
+          )
+        );
+      } catch (error) {
+        setError("Error updating todo:" + error);
+      }
     }
     setModalOpen(false);
   };
 
-  const deleteTodo = (id: number) => {
-    axios
-      .delete(API_URL + `/${id}`)
-      .then(() => {
-        setIncompleteToDos(incompleteTodos.filter((todo) => todo.id !== id));
-        setCompletedToDos(completedTodos.filter((todo) => todo.id !== id));
-      })
-      .catch((error) => setError("Error deleting todo:" + error));
+  const deleteTodo = async (id: number) => {
+    try {
+      await axios.delete(API_URL + `/${id}`);
+      setIncompleteToDos(incompleteTodos.filter((todo) => todo.id !== id));
+      setCompletedToDos(completedTodos.filter((todo) => todo.id !== id));
+    } catch (error) {
+      setError("Error deleting todo:" + error);
+    }
   };
-
-  const completeTodo = (id: number) => {
+  
+  const completeTodo = async (id: number) => {
     const todo = incompleteTodos.find((todo) => todo.id === id);
     if (todo) {
-      axios
-        .put(API_URL + `/${id}`, {
+      try {
+        await axios.put(API_URL + `/${id}`, {
           ...todo,
           completed: true,
-        })
-        .then(() => {
-          setIncompleteToDos(incompleteTodos.filter((t) => t.id !== id));
-          setCompletedToDos([...completedTodos, { ...todo, completed: true }]);
-        })
-        .catch((error) => setError("Error completing todo:" + error));
+        });
+        setIncompleteToDos(incompleteTodos.filter((t) => t.id !== id));
+        setCompletedToDos([...completedTodos, { ...todo, completed: true }]);
+      } catch (error) {
+        setError("Error completing todo:" + error);
+      }
     } else {
       const completedTodo = completedTodos.find(
         (todo: { id: number }) => todo.id === id
       );
       if (completedTodo) {
-        axios
-          .put(API_URL + `/${id}`, {
+        try {
+          await axios.put(API_URL + `/${id}`, {
             ...completedTodo,
             completed: false,
-          })
-          .then(() => {
-            setCompletedToDos(
-              completedTodos.filter((t: { id: number }) => t.id !== id)
-            );
-            setIncompleteToDos([
-              ...incompleteTodos,
-              { ...completedTodo, completed: false },
-            ]);
-          })
-          .catch((error) => setError("Error marking todo incomplete:" + error));
+          });
+          setCompletedToDos(
+            completedTodos.filter((t: { id: number }) => t.id !== id)
+          );
+          setIncompleteToDos([
+            ...incompleteTodos,
+            { ...completedTodo, completed: false },
+          ]);
+        } catch (error) {
+          setError("Error marking todo incomplete:" + error);
+        }
       }
     }
   };
@@ -172,7 +173,8 @@ function App() {
 
     const updatedItem = { ...removed, completed: isCompleted };
     destClone.splice(droppableDestination.index, 0, updatedItem);
-
+    completeTodo(updatedItem.id)
+    
     const result: { [key: string]: Todo[] } = {};
     result[droppableSource.droppableId] = sourceClone;
     result[droppableDestination.droppableId] = destClone;
