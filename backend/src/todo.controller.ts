@@ -31,6 +31,15 @@ export const updateTodo = async (req: Request, res: Response) => {
   }
 };
 
+export const deleteCompletedTodos = async (req: Request, res: Response) => {
+  try {
+    await todoService.deleteCompletedTodos();
+    res.status(200).json({ message: 'All Completed Todos deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete completed todos' });
+  }
+};
+
 export const deleteTodo = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {

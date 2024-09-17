@@ -15,7 +15,7 @@ import ToggleButton from "./ToggleButton";
 interface TodoItemProps {
   todo: Todo;
   provided: any;
-  completeTodo: (id: number) => void;
+  completeTodo: (id: number, completed: boolean) => void;
   deleteTodo: (id: number) => void;
   editTodo: (id: number, title: string, description: string) => void;
   isCompleted?: boolean;
@@ -49,7 +49,7 @@ const TodoItem: React.FC<TodoItemProps> = ({
         <Checkbox
           size="lg"
           border="grey.200"
-          onChange={() => completeTodo(todo.id)}
+          onChange={() => completeTodo(todo.id, !todo.completed)}
           isChecked={todo.completed}
           spacing="1rem"
           p={2}

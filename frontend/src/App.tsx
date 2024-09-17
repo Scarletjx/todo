@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Box, Button, Heading, Flex, Text, Collapse } from "@chakra-ui/react";
 import { DragDropContext } from "react-beautiful-dnd";
 import { AddIcon, CheckIcon } from "@chakra-ui/icons";
@@ -6,8 +6,9 @@ import EditModal from "./components/EditModal";
 import TaskList from "./components/TaskList";
 import ToggleButton from "./components/ToggleButton";
 import SearchBar from "./components/SearchBar";
-import axios from "axios";
 import AlertMessage from "./components/AlertMessage";
+import { useTodos } from "./hooks/useTodos";
+import { useModal } from "./hooks/useModal";
 
 export interface Todo {
   id: number;
@@ -17,53 +18,24 @@ export interface Todo {
   createdAt: string;
 }
 
-const API_URL =
-  process.env.NODE_ENV === "production"
-    ? "/api/todos"
-    : process.env.REACT_APP_API_URL || "http://localhost:5000/api/todos";
-
 function App() {
-  const [incompleteTodos, setIncompleteToDos] = useState<Todo[]>([]);
-  const [completedTodos, setCompletedToDos] = useState<Todo[]>([]);
-  const [modalTitle, setModalTitle] = useState<string>("");
-  const [modalDescription, setModalDescription] = useState<string>("");
-  const [editId, setEditId] = useState<number | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const {
+    incompleteTodos,
+    completedTodos,
+    createTodo,
+    updateTodo,
+    deleteTodo,
+    completeTodo,
+    deleteAllCompletedTodos,
+    error,
+    clearError,
+    onDragEnd,
+  } = useTodos();
+
+  const { modalState, openCreateModal, openEditModal, closeModal } = useModal();
+
   const [showCompleted, setShowCompleted] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchTodos = async () => {
-      try {
-        const response = await axios.get(API_URL);
-        const todos = response.data;
-        const incomplete = todos.filter((todo: Todo) => !todo.completed);
-        const completed = todos.filter((todo: Todo) => todo.completed);
-        setIncompleteToDos(incomplete);
-        setCompletedToDos(completed);
-      } catch (error) {
-        setError("Error fetching todos: " + error);
-      }
-    };
-    fetchTodos();
-  }, []);
-
-  const openCreateModal = () => {
-    setModalTitle("");
-    setModalDescription("");
-    setModalMode("create");
-    setModalOpen(true);
-  };
-
-  const openEditModal = (id: number, title: string, description: string) => {
-    setEditId(id);
-    setModalTitle(title);
-    setModalDescription(description);
-    setModalMode("edit");
-    setModalOpen(true);
-  };
 
   const calculateNextId = () => {
     const allTodos = [...incompleteTodos, ...completedTodos];
@@ -74,7 +46,9 @@ function App() {
   };
 
   const saveTodo = async (title: string, description: string) => {
-    if (modalMode === "create") {
+    const { mode, editId } = modalState;
+
+    if (mode === "create") {
       const newTodo: Todo = {
         id: calculateNextId(),
         title,
@@ -82,141 +56,11 @@ function App() {
         description: description,
         createdAt: new Date().toISOString(),
       };
-      try {
-        const response = await axios.post(API_URL, newTodo);
-        setIncompleteToDos([...incompleteTodos, response.data]);
-      } catch (error) {
-        setError("Error creating todo:" + error);
-      }
-    } else if (modalMode === "edit" && editId !== null) {
-      try {
-        await axios.put(API_URL + `/${editId}`, {
-          title,
-          description,
-        });
-        setIncompleteToDos(
-          incompleteTodos.map((todo) =>
-            todo.id === editId ? { ...todo, title, description } : todo
-          )
-        );
-      } catch (error) {
-        setError("Error updating todo:" + error);
-      }
+      createTodo(newTodo);
+    } else if (mode === "edit" && editId !== null) {
+      updateTodo(editId, { title, description });
     }
-    setModalOpen(false);
-  };
-
-  const deleteTodo = async (id: number) => {
-    try {
-      await axios.delete(API_URL + `/${id}`);
-      setIncompleteToDos(incompleteTodos.filter((todo) => todo.id !== id));
-      setCompletedToDos(completedTodos.filter((todo) => todo.id !== id));
-    } catch (error) {
-      setError("Error deleting todo:" + error);
-    }
-  };
-  
-  const completeTodo = async (id: number) => {
-    const todo = incompleteTodos.find((todo) => todo.id === id);
-    if (todo) {
-      try {
-        await axios.put(API_URL + `/${id}`, {
-          ...todo,
-          completed: true,
-        });
-        setIncompleteToDos(incompleteTodos.filter((t) => t.id !== id));
-        setCompletedToDos([...completedTodos, { ...todo, completed: true }]);
-      } catch (error) {
-        setError("Error completing todo:" + error);
-      }
-    } else {
-      const completedTodo = completedTodos.find(
-        (todo: { id: number }) => todo.id === id
-      );
-      if (completedTodo) {
-        try {
-          await axios.put(API_URL + `/${id}`, {
-            ...completedTodo,
-            completed: false,
-          });
-          setCompletedToDos(
-            completedTodos.filter((t: { id: number }) => t.id !== id)
-          );
-          setIncompleteToDos([
-            ...incompleteTodos,
-            { ...completedTodo, completed: false },
-          ]);
-        } catch (error) {
-          setError("Error marking todo incomplete:" + error);
-        }
-      }
-    }
-  };
-
-  const reorder = (list: Todo[], startIndex: number, endIndex: number) => {
-    const result = Array.from(list);
-    const [removed] = result.splice(startIndex, 1);
-    result.splice(endIndex, 0, removed);
-    return result;
-  };
-
-  const move = (
-    source: Todo[],
-    destination: Todo[],
-    droppableSource: any,
-    droppableDestination: any,
-    isCompleted: boolean
-  ) => {
-    const sourceClone = Array.from(source);
-    const destClone = Array.from(destination);
-    const [removed] = sourceClone.splice(droppableSource.index, 1);
-
-    const updatedItem = { ...removed, completed: isCompleted };
-    destClone.splice(droppableDestination.index, 0, updatedItem);
-    completeTodo(updatedItem.id)
-    
-    const result: { [key: string]: Todo[] } = {};
-    result[droppableSource.droppableId] = sourceClone;
-    result[droppableDestination.droppableId] = destClone;
-
-    return result;
-  };
-
-  const onDragEnd = (result: any) => {
-    const { source, destination } = result;
-
-    if (!destination) return;
-
-    // Moving within the same lisst
-    if (source.droppableId === destination.droppableId) {
-      if (source.droppableId === "incomplete") {
-        const reordered = reorder(
-          incompleteTodos,
-          source.index,
-          destination.index
-        );
-        setIncompleteToDos(reordered);
-      } else if (source.droppableId === "completed") {
-        const reordered = reorder(
-          completedTodos,
-          source.index,
-          destination.index
-        );
-        setCompletedToDos(reordered);
-      }
-    } else {
-      // Moving between lists
-      const result = move(
-        source.droppableId === "incomplete" ? incompleteTodos : completedTodos,
-        source.droppableId === "incomplete" ? completedTodos : incompleteTodos,
-        source,
-        destination,
-        destination.droppableId === "completed"
-      );
-
-      setIncompleteToDos(result.incomplete || incompleteTodos);
-      setCompletedToDos(result.completed || completedTodos);
-    }
+    closeModal();
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -275,12 +119,7 @@ function App() {
 
       {error && (
         <Box py={5}>
-          <AlertMessage
-            message={error}
-            onClose={() => {
-              setError(null);
-            }}
-          />
+          <AlertMessage message={error} onClose={clearError} />
         </Box>
       )}
 
@@ -327,7 +166,7 @@ function App() {
             bg="white"
             color="red"
             as="u"
-            onClick={() => setCompletedToDos([])}
+            onClick={deleteAllCompletedTodos}
             _hover={{
               bg: "rgba(255, 94, 94, 0.15)",
             }}
@@ -348,16 +187,14 @@ function App() {
         </Collapse>
       </DragDropContext>
 
-      {modalOpen && (
+      {modalState.isOpen && (
         <EditModal
-          isOpen={modalOpen}
-          mode={modalMode}
-          initialTitle={modalTitle}
-          initialDescription={modalDescription}
+          isOpen={modalState.isOpen}
+          mode={modalState.mode}
+          initialTitle={modalState.title}
+          initialDescription={modalState.description}
           onSave={saveTodo}
-          onClose={() => {
-            setModalOpen(false);
-          }}
+          onClose={closeModal}
         />
       )}
     </Box>
