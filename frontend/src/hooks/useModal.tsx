@@ -1,7 +1,22 @@
 import { useState } from "react";
 
-export const useModal = () => {
-  const [modalState, setModalState] = useState({
+export interface ModalState {
+  isOpen: boolean;
+  mode: "create" | "edit";
+  editId: number | null;
+  title: string;
+  description: string;
+}
+
+export interface UseModalReturn {
+  modalState: ModalState;
+  openCreateModal: () => void;
+  openEditModal: (id: number, title: string, description: string) => void;
+  closeModal: () => void;
+}
+
+export const useModal = (): UseModalReturn => {
+  const [modalState, setModalState] = useState<ModalState>({
     isOpen: false,
     mode: "create" as "create" | "edit",
     title: "",

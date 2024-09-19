@@ -8,7 +8,20 @@ import {
   deleteAllCompletedTodos as apiDeleteAllCompletedTodos,
 } from "../todoService";
 
-export const useTodos = () => {
+export interface UseTodosReturn {
+  incompleteTodos: Todo[];
+  completedTodos: Todo[];
+  createTodo: (newTodo: Todo) => Promise<void>;
+  updateTodo: (id: number, updatedData: Partial<Todo>) => Promise<void>;
+  deleteTodo: (id: number) => Promise<void>;
+  completeTodo: (id: number, completed: boolean) => Promise<void>;
+  deleteAllCompletedTodos: () => Promise<void>;
+  error: string | null;
+  clearError: () => void;
+  onDragEnd: (result: any) => void;
+}
+
+export const useTodos = (): UseTodosReturn => {
   const [incompleteTodos, setIncompleteToDos] = useState<Todo[]>([]);
   const [completedTodos, setCompletedToDos] = useState<Todo[]>([]);
   const [error, setError] = useState<string | null>(null);
