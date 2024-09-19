@@ -1,13 +1,13 @@
 // App.test.tsx
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import App from "./App";
-import { useTodos, UseTodosReturn } from "./hooks/useTodos";
-import { useModal, UseModalReturn } from "./hooks/useModal";
+import App from "../App";
+import { useTodos, UseTodosReturn } from "../hooks/useTodos";
+import { useModal, UseModalReturn } from "../hooks/useModal";
 
 //Mock the entire module where useTodos and useModal are defined
-jest.mock("./hooks/useTodos");
-jest.mock("./hooks/useModal");
+jest.mock("../hooks/useTodos");
+jest.mock("../hooks/useModal");
 
 // TypeScript interface for mock implementation of useTodos
 const mockUseTodos: UseTodosReturn = {

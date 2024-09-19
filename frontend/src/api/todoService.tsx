@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Todo } from "./App";
+import { Todo } from "../App";
 
 const API_URL =
   process.env.NODE_ENV === "production"

@@ -6,7 +6,7 @@ import {
   updateTodo as apiUpdateTodo,
   deleteTodo as apiDeleteTodo,
   deleteAllCompletedTodos as apiDeleteAllCompletedTodos,
-} from "../todoService";
+} from "../api/todoService";
 
 export interface UseTodosReturn {
   incompleteTodos: Todo[];
